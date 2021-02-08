@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2021-02-08 Mo. 19:01 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Configuring the Emacs display system</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Jörg Kollmann" />
+<link rel="stylesheet" type="text/css" href="/chrome/rethink.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="preamble" class="status">
+<img src="/chrome/image1.jpg"/><div style="padding:2vh"><a style="font-weight:900; text-decoration:none" href="/">Home</a><span style="float: right">last changed: 2021-02-07</span></div>
+</div>
+<div id="content">
+<h1 class="title">Configuring the Emacs display system</h1>
+
+<div id="outline-container-orgc9d8612" class="outline-2">
+<h2 id="orgc9d8612">TL;DR</h2>
+<div class="outline-text-2" id="text-orgc9d8612">
+<p>
+A topic of long and outstanding troubles for me has been the automatic
+selection of the <i>other window</i> in emacs. As soon as an info buffer is shown,
+the current window is split or another, already existing window is
+selected to show the buffer. This is no problem when there is only
+one window in the current frame, but if you split your frame
+into a carefully crafted set of windows, the next info buffer will
+most often annoy by appearing in one of those windows. So I tried to
+solve the question on how to change this behaviour.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org10bf256" class="outline-2">
+<h2 id="org10bf256">Handling of other window</h2>
+<div class="outline-text-2" id="text-org10bf256">
+<p>
+First, what is this <i>other window</i>? When you are working in emacs,
+typically all your navigation or modification commands are executed in
+the current window (the one the cursor mark is in). Besides that,
+there can be another special window, which you can also modify
+indirectly (e.g. with <code>C-M-v</code> to scroll). Often, this other window pops
+up to show info buffers activated with functions like <code>describe-key</code>
+or <code>describe-function</code>. 
+</p>
+
+<p>
+Now, as it seems, this selection mechanism of the other window is
+actually a quite deterministic operation. Its frontend is
+<code>pop-to-buffer</code> and documentation is in <code>display-buffer</code>. Its
+behaviour is controlled by some variables
+(<code>display-buffer-fallback-action</code>, <code>display-buffer-base-action</code> etc),
+which define a priorized list of actions. There, a range of
+<code>display-buffer-functions</code> can be combined, generating this
+behaviour. When displaying a new buffer, each of these
+functions will be called. Each one now uses its own strategy to decide if
+there is an existing window or if a new window can be split to display
+the buffer. Each one also can step back and leave it to the following
+one to take the decision.
+</p>
+
+<p>
+So the first idea mitigating the problem might be to sensibly change
+the action list defined in <code>display-buffer-fallback-action</code>,
+overriding it in <code>display-buffer-base-action</code>. Here I just replace
+the <code>display-buffer-use-some-window</code> function, which obviously is the
+source of this erratic behaviour. My replacement is a combination of
+<code>display-buffer-below-selected</code> and <code>display-buffer-at-bottom</code>.
+After a while of testing this, it seems to be not such a bad
+selection, at least for frames using a
+large screen space. This way, windows for occur or magit, which you want
+to pop up on the fly, are put below the window you are working in
+currently. Other windows further down or at the sides are left
+untouched.
+</p>
+
+<p>
+But you also need to make sure windows are not split if too small.
+When this happens the last action comes in, <code>display-buffer-pop-up-frame</code>,
+which will open a new frame to display the buffer. In my opinion, this
+is still better as a last resort than to change my window layout.
+</p>
+
+<p>
+The configuration looks loke this.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(custom-set-variables
+ '(display-buffer-base-action
+   '((display-buffer-maybe-as-scroll-buffer display-buffer-dedicated-window display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
+ '(window-min-height 8)
+ '(window-min-width 40))
+</pre>
+</div>
+
+<p>
+The actions in this list do things like checking if the buffer
+already had been displayed in a still existing window and then re-using
+that window. Otherwise, they try to split a window below the current
+one or, if there is not enough place, at the frame's bottom.
+</p>
+
+<p>
+To avoid opening a new frame, for example if your current one is
+already cluttered with small windows, I've added a function to
+temporarily edit with original behaviour.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">edit-with-fallback-display</span> ()
+  <span style="color: #8b2252;">"reset `</span><span style="color: #008b8b;">display-buffer-base-action</span><span style="color: #8b2252;">' and edit recursively, to</span>
+<span style="color: #8b2252;">  have the original buffer sharing behaviour."</span>
+  (<span style="color: #a020f0;">interactive</span>)
+  (<span style="color: #a020f0;">let</span> ((display-buffer-base-action nil))
+    (recursive-edit)))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org890d00d" class="outline-2">
+<h2 id="org890d00d">Help and Apropos buffers</h2>
+<div class="outline-text-2" id="text-org890d00d">
+<p>
+Help and apropos buffers should not go into a magit or occur window,
+but into their own. So, I've added another configuration for them.
+Recognized by a regex, they receive a special list of display actions and
+also some attributes modifying the window size. I want to put those
+buffers into a window at bottom, where they are unobtrusive and can
+stay as long as I want. If such a window already exists, it should be
+reused. The given <code>display-height</code> attribute
+makes sure the window (also if reused) is shrunk to the size of it's actual
+contents. If it needs to be widened instead, this is done at max to
+half of the frame size. This way, describing functions or variables
+can be repeated as often as wished and the description always goes
+into the same window, resizing it as needed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(custom-set-variables
+ '(display-buffer-alist
+   '((<span style="color: #8b2252;">"\\*Help\\*</span><span style="color: #8b2252; font-weight: bold;">\\</span><span style="color: #8b2252; font-weight: bold;">|</span><span style="color: #8b2252;">\\*Apropos\\*"</span>
+      (display-buffer-as-scroll-buffer display-buffer-dedicated-window display-buffer-reuse-help display-buffer-at-bottom)
+      (window-height . fit-window-to-buffer-max-half-frame)))))
+</pre>
+</div>
+
+<p>
+The function <code>display-buffer-reuse-help</code> uses a configurable regex to
+see if there is already a help window visible. If one is found, that
+one is used to show the new help buffer. Also, if a window height
+function is given, it is applied to adopt the size of the re-used
+window.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defcustom</span> <span style="color: #a0522d;">help-buffer-regex</span> <span style="color: #8b2252;">"\\*Help\\*</span><span style="color: #8b2252; font-weight: bold;">\\</span><span style="color: #8b2252; font-weight: bold;">|</span><span style="color: #8b2252;">\\*Apropos\\*"</span>
+  <span style="color: #8b2252;">"regular expression defining which buffers should be recognized as help</span>
+<span style="color: #8b2252;">buffers in `</span><span style="color: #008b8b;">display-buffer-reuse-help</span><span style="color: #8b2252;">'."</span>
+  <span style="color: #483d8b;">:type</span> '(string)
+  <span style="color: #483d8b;">:group</span> 'my-cust)
+
+(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">display-buffer-reuse-help</span> (buffer alist)
+  <span style="color: #8b2252;">"If a *Help* or *Apropos* window is live, try to reuse that."</span>
+  (<span style="color: #a020f0;">let</span> ((wnd (car (remove-if-not
+                   (<span style="color: #a020f0;">lambda</span> (w)
+                     (string-match help-buffer-regex
+                                   (buffer-name (window-buffer w))))
+                   (window-list)))))
+    (<span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">and</span> wnd (window-live-p wnd))
+        (window-update-buffer buffer wnd 'reuse alist))))
+
+(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">window-update-buffer</span> (buffer window type alist)
+  <span style="color: #8b2252;">"display buffer in window, recording type then apply height"</span>
+  (<span style="color: #a020f0;">if</span> (window--display-buffer buffer window type alist)
+      (window-apply-height-fnc window alist)))
+
+(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">window-apply-height-fnc</span> (window alist)
+  <span style="color: #8b2252;">"rudimentary alist parser just accepting a height fnc for now.."</span>
+  (<span style="color: #a020f0;">let</span> ((height (cdr (assq 'window-height alist))))
+    (<span style="color: #a020f0;">if</span> (functionp height)
+        (<span style="color: #a020f0;">ignore-errors</span> (funcall height window)))
+    window))
+</pre>
+</div>
+
+<p>
+Finally, the <code>window-height</code> action attribute specified in the
+configuration above uses a custom function
+<code>fit-window-to-buffer-max-half-frame</code>. It calls <code>fit-window-to-buffer</code>
+to narrow the window to its new contents or, if widening it instead,
+use the halve frame height as max height.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">fit-window-to-buffer-max-half-frame</span> (<span style="color: #228b22;">&amp;optional</span> window)
+  <span style="color: #8b2252;">"fit window to buffer size, but use max half of current frame height."</span>
+  (<span style="color: #a020f0;">interactive</span>)
+  (<span style="color: #a020f0;">let</span> ((wnd (<span style="color: #a020f0;">or</span> window (selected-window)))
+        (max-height (/ (frame-height) 2)))
+    (fit-window-to-buffer window max-height)))
+</pre>
+</div>
+
+<p>
+Now try this and repeatedly call <code>describe-function</code> for different
+functions. The first call opens a help window, each following call
+changes its size and updates it. For me, this works nicely.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgec9c3f5" class="outline-2">
+<h2 id="orgec9c3f5">to be continued..</h2>
+<div class="outline-text-2" id="text-orgec9c3f5">
+<p>
+Ths can be continued to apply special behavious for example to dired
+windows. And the more you customize this, the more you also want a
+more fine grained "remote" control of the other window, i.e. by augmenting the
+set of <code>C-x 4</code> keys. In the next post I'm showing what I've done so far..
+</p>
+
+<p>
+Feel free to comment on <a href="https://www.reddit.com/r/joergsworld/comments/lb36en/transforming_recursive_algorithms_into_iterative/">Reddit</a>.
+</p>
+
+<p>
+My current .emacs (always a work in progress) on <a href="https://github.com/e17i/emacs-config/">github</a>
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Jörg Kollmann
+(Reddit: <a href="https://www.reddit.com/user/e17i">u/e17i</a>)</p> <p>Made on
+emacs org-mode with <a href="https://jessekelly881-rethink.surge.sh/">Rethink</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,195 @@
+# -*- org-html-postamble-format:(("en" "<p class="author">Author: %a
+# (Reddit: <a href="https://www.reddit.com/user/e17i">u/e17i</a>)</p> <p>Made on
+# emacs org-mode with <a href="https://jessekelly881-rethink.surge.sh/">Rethink</a></p>"));
+# org-html-postamble: t -*-
+#
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="/chrome/rethink.css" />
+#+OPTIONS: toc:nil num:nil html-style:nil
+# #+INFOJS_OPT: view:info toc:nil path:chrome/org-info.js
+#+AUTHOR: Jörg Kollmann
+#+TITLE: Configuring the Emacs display system
+#+DATE: 2021-02-07
+
+* TL;DR
+
+A topic of long and outstanding troubles for me has been the automatic
+selection of the /other window/ in emacs. As soon as an info buffer is shown,
+the current window is split or another, already existing window is
+selected to show the buffer. This is no problem when there is only
+one window in the current frame, but if you split your frame
+into a carefully crafted set of windows, the next info buffer will
+most often annoy by appearing in one of those windows. So I tried to
+solve the question on how to change this behaviour.
+
+* Handling of other window
+
+First, what is this /other window/? When you are working in emacs,
+typically all your navigation or modification commands are executed in
+the current window (the one the cursor mark is in). Besides that,
+there can be another special window, which you can also modify
+indirectly (e.g. with =C-M-v= to scroll). Often, this other window pops
+up to show info buffers activated with functions like =describe-key=
+or =describe-function=. 
+
+Now, as it seems, this selection mechanism of the other window is
+actually a quite deterministic operation. Its frontend is
+~pop-to-buffer~ and documentation is in ~display-buffer~. Its
+behaviour is controlled by some variables
+(~display-buffer-fallback-action~, ~display-buffer-base-action~ etc),
+which define a priorized list of actions. There, a range of
+~display-buffer-functions~ can be combined, generating this
+behaviour. When displaying a new buffer, each of these
+functions will be called. Each one now uses its own strategy to decide if
+there is an existing window or if a new window can be split to display
+the buffer. Each one also can step back and leave it to the following
+one to take the decision.
+
+So the first idea mitigating the problem might be to sensibly change
+the action list defined in ~display-buffer-fallback-action~,
+overriding it in ~display-buffer-base-action~. Here I just replace
+the ~display-buffer-use-some-window~ function, which obviously is the
+source of this erratic behaviour. My replacement is a combination of
+~display-buffer-below-selected~ and ~display-buffer-at-bottom~.
+After a while of testing this, it seems to be not such a bad
+selection, at least for frames using a
+large screen space. This way, windows for occur or magit, which you want
+to pop up on the fly, are put below the window you are working in
+currently. Other windows further down or at the sides are left
+untouched.
+
+But you also need to make sure windows are not split if too small.
+When this happens the last action comes in, ~display-buffer-pop-up-frame~,
+which will open a new frame to display the buffer. In my opinion, this
+is still better as a last resort than to change my window layout.
+
+# We also
+# activate some further tweaks which are declared in the following sections.
+
+The configuration looks loke this.
+
+# , including changes to
+# ~display-buffer-alist~, whose parts are introduced below.
+
+#+BEGIN_SRC emacs-lisp
+(custom-set-variables
+ '(display-buffer-base-action
+   '((display-buffer-maybe-as-scroll-buffer display-buffer-dedicated-window display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
+ '(window-min-height 8)
+ '(window-min-width 40))
+#+END_SRC
+
+The actions in this list do things like checking if the buffer
+already had been displayed in a still existing window and then re-using
+that window. Otherwise, they try to split a window below the current
+one or, if there is not enough place, at the frame's bottom.
+
+To avoid opening a new frame, for example if your current one is
+already cluttered with small windows, I've added a function to
+temporarily edit with original behaviour.
+
+#+BEGIN_SRC emacs-lisp
+(defun edit-with-fallback-display ()
+  "reset `display-buffer-base-action' and edit recursively, to
+  have the original buffer sharing behaviour."
+  (interactive)
+  (let ((display-buffer-base-action nil))
+    (recursive-edit)))
+#+END_SRC
+
+* Help and Apropos buffers
+
+Help and apropos buffers should not go into a magit or occur window,
+but into their own. So, I've added another configuration for them.
+Recognized by a regex, they receive a special list of display actions and
+also some attributes modifying the window size. I want to put those
+buffers into a window at bottom, where they are unobtrusive and can
+stay as long as I want. If such a window already exists, it should be
+reused. The given ~display-height~ attribute
+makes sure the window (also if reused) is shrunk to the size of it's new
+contents. If it needs to be widened instead, this is done at max to
+half of the frame size. This way, describing functions or variables
+can be repeated as often as wished and the description always goes
+into the same window, resizing it as needed.
+
+#+begin_src emacs-lisp
+(custom-set-variables
+ '(display-buffer-alist
+   '(("\\*Help\\*\\|\\*Apropos\\*"
+      (display-buffer-as-scroll-buffer display-buffer-dedicated-window display-buffer-reuse-help display-buffer-at-bottom)
+      (window-height . fit-window-to-buffer-max-half-frame)))))
+#+end_src
+
+The function ~display-buffer-reuse-help~ uses a configurable regex to
+see if there is already a help window visible. If one is found, that
+one is used to show the new help buffer. Also, if a window height
+function is given, it is applied to adopt the size of the re-used
+window.
+
+#+BEGIN_SRC emacs-lisp
+(defcustom help-buffer-regex "\\*Help\\*\\|\\*Apropos\\*"
+  "regular expression defining which buffers should be recognized as help
+buffers in `display-buffer-reuse-help'."
+  :type '(string)
+  :group 'my-cust)
+
+(defun display-buffer-reuse-help (buffer alist)
+  "If a *Help* or *Apropos* window is live, try to reuse that."
+  (let ((wnd (car (remove-if-not
+                   (lambda (w)
+                     (string-match help-buffer-regex
+                                   (buffer-name (window-buffer w))))
+                   (window-list)))))
+    (if (and wnd (window-live-p wnd))
+        (window-update-buffer buffer wnd 'reuse alist))))
+
+(defun window-update-buffer (buffer window type alist)
+  "display buffer in window, recording type then apply height"
+  (if (window--display-buffer buffer window type alist)
+      (window-apply-height-fnc window alist)))
+
+(defun window-apply-height-fnc (window alist)
+  "rudimentary alist parser just accepting a height fnc for now.."
+  (let ((height (cdr (assq 'window-height alist))))
+    (if (functionp height)
+        (ignore-errors (funcall height window)))
+    window))
+#+END_SRC
+
+Finally, the ~window-height~ action attribute specified in the
+configuration above uses a custom function
+~fit-window-to-buffer-max-half-frame~. It calls ~fit-window-to-buffer~
+to narrow the window to its new contents or, if widening it instead,
+use halve of the frame height as max height.
+
+#+BEGIN_SRC emacs-lisp
+(defun fit-window-to-buffer-max-half-frame (&optional window)
+  "fit window to buffer size, but use max half of current frame height."
+  (interactive)
+  (let ((wnd (or window (selected-window)))
+        (max-height (/ (frame-height) 2)))
+    (fit-window-to-buffer window max-height)))
+#+END_SRC
+
+Now try this and repeatedly call ~describe-function~ for different
+functions. The first call opens a help window, each following call
+changes its size and updates it. For me, this works nicely.
+
+* to be continued..
+
+Ths can be continued to apply special behavious for example also to dired
+windows. And the more you customize this, the more you also want a
+more fine grained "remote" control of the other window, i.e. by augmenting the
+set of =C-x 4= keys. In the next post I'm continuing to show what I've done so far..
+
+Feel free to comment on [[https://www.reddit.com/r/joergsworld/comments/lb36en/transforming_recursive_algorithms_into_iterative/][Reddit]].
+
+My current .emacs (always a work in progress) on [[https://github.com/e17i/emacs-config/][github]]
+
+* COMMENT Local Variables
+  # Local Variables:
+  # org-html-htmlize-output-type: css
+  # org-html-postamble-format:(("en" "<p class=\"author\">Author: %a (Reddit: <a href=\"https://www.reddit.com/user/e17i\">u/e17i</a>)</p> <p>Made on emacs org-mode with <a href=\"https://jessekelly881-rethink.surge.sh/\">Rethink</a></p>"))
+  # org-html-postamble: 't
+  # org-html-preamble-format:(("en" "<img src=\"/chrome/image1.jpg\"/><div style=\"padding:2vh\"><a style=\"font-weight:900; text-decoration:none\" href=\"/\">Home</a><span style=\"float: right\">last changed: %d</span></div>"))
+  # org-html-preamble: 't
+  # End:
