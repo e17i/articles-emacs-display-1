@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2021-02-08 Mo. 19:01 -->
+<!-- 2021-02-08 Mo. 19:30 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configuring the Emacs display system</title>
@@ -59,14 +59,14 @@ for the JavaScript code in this tag.
 </head>
 <body>
 <div id="preamble" class="status">
-<img src="/chrome/image1.jpg"/><div style="padding:2vh"><a style="font-weight:900; text-decoration:none" href="/">Home</a><span style="float: right">last changed: 2021-02-07</span></div>
+<img src="/chrome/image1.jpg"/><div style="padding:2vh"><a style="font-weight:900; text-decoration:none" href="/">Home</a><span style="float: right">last changed: 2021-02-08</span></div>
 </div>
 <div id="content">
 <h1 class="title">Configuring the Emacs display system</h1>
 
-<div id="outline-container-orgc9d8612" class="outline-2">
-<h2 id="orgc9d8612">TL;DR</h2>
-<div class="outline-text-2" id="text-orgc9d8612">
+<div id="outline-container-orgd29f95b" class="outline-2">
+<h2 id="orgd29f95b">TL;DR</h2>
+<div class="outline-text-2" id="text-orgd29f95b">
 <p>
 A topic of long and outstanding troubles for me has been the automatic
 selection of the <i>other window</i> in emacs. As soon as an info buffer is shown,
@@ -80,9 +80,9 @@ solve the question on how to change this behaviour.
 </div>
 </div>
 
-<div id="outline-container-org10bf256" class="outline-2">
-<h2 id="org10bf256">Handling of other window</h2>
-<div class="outline-text-2" id="text-org10bf256">
+<div id="outline-container-org3f16459" class="outline-2">
+<h2 id="org3f16459">Handling of other window</h2>
+<div class="outline-text-2" id="text-org3f16459">
 <p>
 First, what is this <i>other window</i>? When you are working in emacs,
 typically all your navigation or modification commands are executed in
@@ -168,9 +168,9 @@ temporarily edit with original behaviour.
 </div>
 </div>
 
-<div id="outline-container-org890d00d" class="outline-2">
-<h2 id="org890d00d">Help and Apropos buffers</h2>
-<div class="outline-text-2" id="text-org890d00d">
+<div id="outline-container-org479ae9a" class="outline-2">
+<h2 id="org479ae9a">Help and Apropos buffers</h2>
+<div class="outline-text-2" id="text-org479ae9a">
 <p>
 Help and apropos buffers should not go into a magit or occur window,
 but into their own. So, I've added another configuration for them.
@@ -179,7 +179,7 @@ also some attributes modifying the window size. I want to put those
 buffers into a window at bottom, where they are unobtrusive and can
 stay as long as I want. If such a window already exists, it should be
 reused. The given <code>display-height</code> attribute
-makes sure the window (also if reused) is shrunk to the size of it's actual
+makes sure the window (also if reused) is shrunk to the size of it's new
 contents. If it needs to be widened instead, this is done at max to
 half of the frame size. This way, describing functions or variables
 can be repeated as often as wished and the description always goes
@@ -239,7 +239,7 @@ Finally, the <code>window-height</code> action attribute specified in the
 configuration above uses a custom function
 <code>fit-window-to-buffer-max-half-frame</code>. It calls <code>fit-window-to-buffer</code>
 to narrow the window to its new contents or, if widening it instead,
-use the halve frame height as max height.
+use halve of the frame height as max height.
 </p>
 
 <div class="org-src-container">
@@ -260,14 +260,14 @@ changes its size and updates it. For me, this works nicely.
 </div>
 </div>
 
-<div id="outline-container-orgec9c3f5" class="outline-2">
-<h2 id="orgec9c3f5">to be continued..</h2>
-<div class="outline-text-2" id="text-orgec9c3f5">
+<div id="outline-container-org8cbf5ec" class="outline-2">
+<h2 id="org8cbf5ec">to be continued..</h2>
+<div class="outline-text-2" id="text-org8cbf5ec">
 <p>
-Ths can be continued to apply special behavious for example to dired
+Ths can be continued to apply special behavious for example also to dired
 windows. And the more you customize this, the more you also want a
 more fine grained "remote" control of the other window, i.e. by augmenting the
-set of <code>C-x 4</code> keys. In the next post I'm showing what I've done so far..
+set of <code>C-x 4</code> keys. In the next post I'm continuing to show what I've done so far..
 </p>
 
 <p>

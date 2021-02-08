@@ -8,7 +8,7 @@
 # #+INFOJS_OPT: view:info toc:nil path:chrome/org-info.js
 #+AUTHOR: Jörg Kollmann
 #+TITLE: Configuring the Emacs display system
-#+DATE: 2021-02-07
+#+DATE: 2021-02-08
 
 * TL;DR
 
