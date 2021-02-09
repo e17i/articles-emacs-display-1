@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2021-02-09 Di. 11:52 -->
+<!-- 2021-02-09 Di. 13:43 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configuring the Emacs display system</title>
@@ -64,9 +64,9 @@ for the JavaScript code in this tag.
 <div id="content">
 <h1 class="title">Configuring the Emacs display system</h1>
 
-<div id="outline-container-orgcae46ea" class="outline-2">
-<h2 id="orgcae46ea">TL;DR</h2>
-<div class="outline-text-2" id="text-orgcae46ea">
+<div id="outline-container-org719dd80" class="outline-2">
+<h2 id="org719dd80">TL;DR</h2>
+<div class="outline-text-2" id="text-org719dd80">
 <p>
 A topic of long and outstanding troubles for me has been the automatic
 selection of the <i>other window</i> in emacs. As soon as an info buffer is shown,
@@ -80,9 +80,9 @@ solve the question on how to change this behaviour.
 </div>
 </div>
 
-<div id="outline-container-orgd953807" class="outline-2">
-<h2 id="orgd953807">Handling of other window</h2>
-<div class="outline-text-2" id="text-orgd953807">
+<div id="outline-container-org391a2cf" class="outline-2">
+<h2 id="org391a2cf">Handling of other window</h2>
+<div class="outline-text-2" id="text-org391a2cf">
 <p>
 First, what is this <i>other window</i>? When you are working in emacs,
 typically all your navigation or modification commands are executed in
@@ -153,8 +153,8 @@ The configuration looks loke this.
 
 <p>
 The actions in this list do things like checking if the buffer
-already had been displayed in a still existing window and then re-using
-that window. Otherwise, they try to split a window below the current
+already had been displayed; if that window is still existing, then re-using
+it. Otherwise, they try to split a window below the current
 one or, if there is not enough place, at the frame's bottom.
 </p>
 
@@ -176,22 +176,22 @@ temporarily edit with original behaviour.
 </div>
 </div>
 
-<div id="outline-container-org34694bc" class="outline-2">
-<h2 id="org34694bc">Help and Apropos buffers</h2>
-<div class="outline-text-2" id="text-org34694bc">
+<div id="outline-container-orgc3decd1" class="outline-2">
+<h2 id="orgc3decd1">Help and Apropos buffers</h2>
+<div class="outline-text-2" id="text-orgc3decd1">
 <p>
-Help and apropos buffers should not go into a magit or occur window,
-but into their own. So, I've added another configuration for them.
-Recognized by a regex, they receive a special list of display actions and
-also some attributes modifying the window size. I want to put those
-buffers into a window at bottom, where they are unobtrusive and can
-stay as long as I want. If such a window already exists, it should be
-reused. The given <code>display-height</code> attribute
-makes sure the window (also if reused) is shrunk to the size of it's new
-contents. If it needs to be widened instead, this is done at max to
-half of the frame size. This way, describing functions or variables
-can be repeated as often as wished and the description always goes
-into the same window, resizing it as needed.
+Help and apropos buffers should not go into a magit or occur window
+probably visible, but always into their own. So, I've added another
+configuration for them. Recognized by a regex, they receive a special
+list of display actions and also an attribute modifying the window
+size. I want to put those buffers into a window at bottom, where they
+are unobtrusive and can stay as long as I want. If such a window
+already exists, it should be reused. The given <code>display-height</code>
+attribute makes sure the window (also if reused) is shrunk to the size
+of it's new contents. If it needs to be widened instead, this is done
+at max to half of the frame size. This way, describing functions or
+variables can be repeated as often as wished and the description
+always goes into the same window, resizing it as needed.
 </p>
 
 <div class="org-src-container">
@@ -209,6 +209,13 @@ see if there is already a help window visible. If one is found, that
 one is used to show the new help buffer. Also, if a window height
 function is given, it is applied to adopt the size of the re-used
 window.
+</p>
+
+<p>
+Note this configurable regex looks the same as the selector regex in
+the <code>display-buffer-alist</code>. But the selector triggers an action when a
+new buffer with this name should be displayed, while the second one is
+used to recognize and re-use a window already existing.
 </p>
 
 <div class="org-src-container">
@@ -268,14 +275,14 @@ changes its size and updates it. For me, this works nicely.
 </div>
 </div>
 
-<div id="outline-container-org207b51b" class="outline-2">
-<h2 id="org207b51b">Explicitly selecting a window</h2>
-<div class="outline-text-2" id="text-org207b51b">
+<div id="outline-container-org16e7b16" class="outline-2">
+<h2 id="org16e7b16">Explicitly selecting a window</h2>
+<div class="outline-text-2" id="text-org16e7b16">
 <p>
 As a second way to solve my problem, I implemented a function to
 dedicate a selected window for the next buffer to appear in. This way,
 you can create a window outside of your working environment, dedicate
-it and then from your main window call magit or occur to appear there.
+it and then from your main window call magit, occur or describe to appear there.
 </p>
 
 <div class="org-src-container">
@@ -324,7 +331,7 @@ beginning of your <code>display-buffer-base-action</code> (and also into
 <p>
 The <code>prog1</code> makes sure the result of <code>window-update-buffer</code> (the
 window actually used or nil) is returned, indicating if this action
-selected a window or if the next one should do it.
+has selected a window or if the next one should do it.
 </p>
 
 <p>
@@ -334,13 +341,14 @@ selecting which window to use as the next other window is not too clumsy.
 </div>
 </div>
 
-<div id="outline-container-org08a91fd" class="outline-2">
-<h2 id="org08a91fd">Push buffer to own frame</h2>
-<div class="outline-text-2" id="text-org08a91fd">
+<div id="outline-container-orgd144bca" class="outline-2">
+<h2 id="orgd144bca">Push buffer to own frame</h2>
+<div class="outline-text-2" id="text-orgd144bca">
 <p>
-Finally, if it is too late and a window already popped up inside of your working
+Finally, if it is too late and a window already did pop up inside of your working
 environment, you can select it and use this function to push it out
-into a new frame.
+into a new frame. As it seems, this works with an emacs running on mac
+or windows, but not on X11. I'll have another look at this..
 </p>
 
 <div class="org-src-container">
@@ -356,9 +364,9 @@ into a new frame.
 </div>
 </div>
 
-<div id="outline-container-org7fae88e" class="outline-2">
-<h2 id="org7fae88e">to be continued..</h2>
-<div class="outline-text-2" id="text-org7fae88e">
+<div id="outline-container-org135d4b6" class="outline-2">
+<h2 id="org135d4b6">to be continued..</h2>
+<div class="outline-text-2" id="text-org135d4b6">
 <p>
 Now I'll see how these three ways are helping. So far, the most
 promising one seems to be the way of modifying the automatic display
@@ -373,7 +381,7 @@ so far..
 </p>
 
 <p>
-Feel free to comment on <a href="https://www.reddit.com/r/joergsworld/comments/lb36en/transforming_recursive_algorithms_into_iterative/">Reddit</a>.
+Feel free to comment on <a href="https://www.reddit.com/r/joergsworld/comments/lg2jlv/configuring_the_emacs_display_system/">Reddit</a>.
 </p>
 
 <p>

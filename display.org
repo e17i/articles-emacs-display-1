@@ -79,8 +79,8 @@ The configuration looks loke this.
 #+END_SRC
 
 The actions in this list do things like checking if the buffer
-already had been displayed in a still existing window and then re-using
-that window. Otherwise, they try to split a window below the current
+already had been displayed; if that window is still existing, then re-using
+it. Otherwise, they try to split a window below the current
 one or, if there is not enough place, at the frame's bottom.
 
 To avoid opening a new frame, for example if your current one is
@@ -98,18 +98,18 @@ temporarily edit with original behaviour.
 
 * Help and Apropos buffers
 
-Help and apropos buffers should not go into a magit or occur window,
-but into their own. So, I've added another configuration for them.
-Recognized by a regex, they receive a special list of display actions and
-also some attributes modifying the window size. I want to put those
-buffers into a window at bottom, where they are unobtrusive and can
-stay as long as I want. If such a window already exists, it should be
-reused. The given ~display-height~ attribute
-makes sure the window (also if reused) is shrunk to the size of it's new
-contents. If it needs to be widened instead, this is done at max to
-half of the frame size. This way, describing functions or variables
-can be repeated as often as wished and the description always goes
-into the same window, resizing it as needed.
+Help and apropos buffers should not go into a magit or occur window
+probably visible, but always into their own. So, I've added another
+configuration for them. Recognized by a regex, they receive a special
+list of display actions and also an attribute modifying the window
+size. I want to put those buffers into a window at bottom, where they
+are unobtrusive and can stay as long as I want. If such a window
+already exists, it should be reused. The given ~display-height~
+attribute makes sure the window (also if reused) is shrunk to the size
+of it's new contents. If it needs to be widened instead, this is done
+at max to half of the frame size. This way, describing functions or
+variables can be repeated as often as wished and the description
+always goes into the same window, resizing it as needed.
 
 #+begin_src emacs-lisp
 (custom-set-variables
@@ -124,6 +124,11 @@ see if there is already a help window visible. If one is found, that
 one is used to show the new help buffer. Also, if a window height
 function is given, it is applied to adopt the size of the re-used
 window.
+
+Note this configurable regex looks the same as the selector regex in
+the =display-buffer-alist=. But the selector triggers an action when a
+new buffer with this name should be displayed, while the second one is
+used to recognize and re-use a window already existing.
 
 #+BEGIN_SRC emacs-lisp
 (defcustom help-buffer-regex "\\*Help\\*\\|\\*Apropos\\*"
@@ -179,7 +184,7 @@ changes its size and updates it. For me, this works nicely.
 As a second way to solve my problem, I implemented a function to
 dedicate a selected window for the next buffer to appear in. This way,
 you can create a window outside of your working environment, dedicate
-it and then from your main window call magit or occur to appear there.
+it and then from your main window call magit, occur or describe to appear there.
 
 #+begin_src emacs-lisp
 (defvar dedicated-other-window nil)
@@ -222,16 +227,17 @@ selected. If none is selected, revert to the default behaviour."
 
 The =prog1= makes sure the result of =window-update-buffer= (the
 window actually used or nil) is returned, indicating if this action
-selected a window or if the next one should do it.
+has selected a window or if the next one should do it.
 
 If you bind =dedicate-window= to a convenient key, this way of
 selecting which window to use as the next other window is not too clumsy.
 
 * Push buffer to own frame
 
-Finally, if it is too late and a window already popped up inside of your working
+Finally, if it is too late and a window already did pop up inside of your working
 environment, you can select it and use this function to push it out
-into a new frame.
+into a new frame. As it seems, this works with an emacs running on mac
+or windows, but not on X11. I'll have another look at this..
 
 #+begin_src emacs-lisp
 (defun push-buffer-to-frame ()
@@ -256,7 +262,7 @@ you customize this, the more you also want a more fine grained
 =C-x 4= keys. In the next post I'm continuing to show what I've done
 so far..
 
-Feel free to comment on [[https://www.reddit.com/r/joergsworld/comments/lb36en/transforming_recursive_algorithms_into_iterative/][Reddit]].
+Feel free to comment on [[https://www.reddit.com/r/joergsworld/comments/lg2jlv/configuring_the_emacs_display_system/][Reddit]].
 
 My current .emacs (always a work in progress) on [[https://github.com/e17i/emacs-config/][github]]
 
