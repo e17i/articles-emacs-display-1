@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2021-02-08 Mo. 19:30 -->
+<!-- 2021-02-09 Di. 11:52 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configuring the Emacs display system</title>
@@ -59,14 +59,14 @@ for the JavaScript code in this tag.
 </head>
 <body>
 <div id="preamble" class="status">
-<img src="/chrome/image1.jpg"/><div style="padding:2vh"><a style="font-weight:900; text-decoration:none" href="/">Home</a><span style="float: right">last changed: 2021-02-08</span></div>
+<img src="/chrome/image1.jpg"/><div style="padding:2vh"><a style="font-weight:900; text-decoration:none" href="/">Home</a><span style="float: right">last changed: 2021-02-09</span></div>
 </div>
 <div id="content">
 <h1 class="title">Configuring the Emacs display system</h1>
 
-<div id="outline-container-orgd29f95b" class="outline-2">
-<h2 id="orgd29f95b">TL;DR</h2>
-<div class="outline-text-2" id="text-orgd29f95b">
+<div id="outline-container-orgcae46ea" class="outline-2">
+<h2 id="orgcae46ea">TL;DR</h2>
+<div class="outline-text-2" id="text-orgcae46ea">
 <p>
 A topic of long and outstanding troubles for me has been the automatic
 selection of the <i>other window</i> in emacs. As soon as an info buffer is shown,
@@ -80,9 +80,9 @@ solve the question on how to change this behaviour.
 </div>
 </div>
 
-<div id="outline-container-org3f16459" class="outline-2">
-<h2 id="org3f16459">Handling of other window</h2>
-<div class="outline-text-2" id="text-org3f16459">
+<div id="outline-container-orgd953807" class="outline-2">
+<h2 id="orgd953807">Handling of other window</h2>
+<div class="outline-text-2" id="text-orgd953807">
 <p>
 First, what is this <i>other window</i>? When you are working in emacs,
 typically all your navigation or modification commands are executed in
@@ -94,7 +94,15 @@ or <code>describe-function</code>.
 </p>
 
 <p>
-Now, as it seems, this selection mechanism of the other window is
+At the beginning, I had three ideas to handle this: pushing an
+annoying buffer into its own frame, explicitly selecting a window
+where the next buffer should appear and modifying the default
+selection strategy. I implemented all three to see which one works
+best.
+</p>
+
+<p>
+Now, as it seems, the selection mechanism of the other window is
 actually a quite deterministic operation. Its frontend is
 <code>pop-to-buffer</code> and documentation is in <code>display-buffer</code>. Its
 behaviour is controlled by some variables
@@ -109,15 +117,15 @@ one to take the decision.
 </p>
 
 <p>
-So the first idea mitigating the problem might be to sensibly change
+So the most promising idea mitigating the problem probably is to sensibly change
 the action list defined in <code>display-buffer-fallback-action</code>,
-overriding it in <code>display-buffer-base-action</code>. Here I just replace
+overriding it in <code>display-buffer-base-action</code>. I did this, just replacing
 the <code>display-buffer-use-some-window</code> function, which obviously is the
 source of this erratic behaviour. My replacement is a combination of
 <code>display-buffer-below-selected</code> and <code>display-buffer-at-bottom</code>.
 After a while of testing this, it seems to be not such a bad
 selection, at least for frames using a
-large screen space. This way, windows for occur or magit, which you want
+large screen space. This way, e.g. windows for occur or magit, which you want
 to pop up on the fly, are put below the window you are working in
 currently. Other windows further down or at the sides are left
 untouched.
@@ -137,7 +145,7 @@ The configuration looks loke this.
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(custom-set-variables
  '(display-buffer-base-action
-   '((display-buffer-maybe-as-scroll-buffer display-buffer-dedicated-window display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
+   '((display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
  '(window-min-height 8)
  '(window-min-width 40))
 </pre>
@@ -168,9 +176,9 @@ temporarily edit with original behaviour.
 </div>
 </div>
 
-<div id="outline-container-org479ae9a" class="outline-2">
-<h2 id="org479ae9a">Help and Apropos buffers</h2>
-<div class="outline-text-2" id="text-org479ae9a">
+<div id="outline-container-org34694bc" class="outline-2">
+<h2 id="org34694bc">Help and Apropos buffers</h2>
+<div class="outline-text-2" id="text-org34694bc">
 <p>
 Help and apropos buffers should not go into a magit or occur window,
 but into their own. So, I've added another configuration for them.
@@ -190,7 +198,7 @@ into the same window, resizing it as needed.
 <pre class="src src-emacs-lisp">(custom-set-variables
  '(display-buffer-alist
    '((<span style="color: #8b2252;">"\\*Help\\*</span><span style="color: #8b2252; font-weight: bold;">\\</span><span style="color: #8b2252; font-weight: bold;">|</span><span style="color: #8b2252;">\\*Apropos\\*"</span>
-      (display-buffer-as-scroll-buffer display-buffer-dedicated-window display-buffer-reuse-help display-buffer-at-bottom)
+      (display-buffer-reuse-help display-buffer-at-bottom)
       (window-height . fit-window-to-buffer-max-half-frame)))))
 </pre>
 </div>
@@ -260,14 +268,108 @@ changes its size and updates it. For me, this works nicely.
 </div>
 </div>
 
-<div id="outline-container-org8cbf5ec" class="outline-2">
-<h2 id="org8cbf5ec">to be continued..</h2>
-<div class="outline-text-2" id="text-org8cbf5ec">
+<div id="outline-container-org207b51b" class="outline-2">
+<h2 id="org207b51b">Explicitly selecting a window</h2>
+<div class="outline-text-2" id="text-org207b51b">
 <p>
-Ths can be continued to apply special behavious for example also to dired
-windows. And the more you customize this, the more you also want a
-more fine grained "remote" control of the other window, i.e. by augmenting the
-set of <code>C-x 4</code> keys. In the next post I'm continuing to show what I've done so far..
+As a second way to solve my problem, I implemented a function to
+dedicate a selected window for the next buffer to appear in. This way,
+you can create a window outside of your working environment, dedicate
+it and then from your main window call magit or occur to appear there.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defvar</span> <span style="color: #a0522d;">dedicated-other-window</span> nil)
+(<span style="color: #a020f0;">defvar</span> <span style="color: #a0522d;">dedication-count</span>)
+
+(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">dedicate-window</span> (arg)
+  <span style="color: #8b2252;">"Dedicate the currently selected window as 'other' window. When</span>
+<span style="color: #8b2252;">called with a =C-0= prefix arg, releases the previously set</span>
+<span style="color: #8b2252;">window and reverts to the default window selection behaviour. Default is a</span>
+<span style="color: #8b2252;">one-time dedication, use =C-u= for unlimited."</span>
+  (<span style="color: #a020f0;">interactive</span> <span style="color: #8b2252;">"p"</span>)
+  (<span style="color: #a020f0;">setq</span> dedicated-other-window
+        (<span style="color: #a020f0;">if</span> (eq arg 0)
+            nil
+          (selected-window)))
+  (<span style="color: #a020f0;">setq</span> dedication-count
+        (<span style="color: #a020f0;">if</span> (eq 4 arg) nil arg))
+  (<span style="color: #a020f0;">if</span> dedicated-other-window
+      (message <span style="color: #8b2252;">"window dedicated"</span>)
+    (message <span style="color: #8b2252;">"dedication removed"</span>)))
+</pre>
+</div>
+
+<p>
+To activate this, put <code>display-buffer-dedicated-window</code> at the
+beginning of your <code>display-buffer-base-action</code> (and also into
+<code>display-buffer-alist</code> or whereever you need it).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">display-buffer-dedicated-window</span> (buffer alist)
+  <span style="color: #8b2252;">"Display pop-up-buffer in the dedicated other window, if one is</span>
+<span style="color: #8b2252;">selected. If none is selected, revert to the default behaviour."</span>
+  (<span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">and</span> dedicated-other-window
+           (window-live-p dedicated-other-window))
+      (<span style="color: #a020f0;">prog1</span>
+          (window-update-buffer buffer dedicated-other-window 'reuse alist)
+        (<span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">and</span> dedication-count (&gt; dedication-count 0))
+            (<span style="color: #a020f0;">setq</span> dedication-count (- dedication-count 1)))
+        (<span style="color: #a020f0;">if</span> (eq 0 dedication-count)
+            (<span style="color: #a020f0;">setq</span> dedicated-other-window nil)))))
+</pre>
+</div>
+
+<p>
+The <code>prog1</code> makes sure the result of <code>window-update-buffer</code> (the
+window actually used or nil) is returned, indicating if this action
+selected a window or if the next one should do it.
+</p>
+
+<p>
+If you bind <code>dedicate-window</code> to a convenient key, this way of
+selecting which window to use as the next other window is not too clumsy.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org08a91fd" class="outline-2">
+<h2 id="org08a91fd">Push buffer to own frame</h2>
+<div class="outline-text-2" id="text-org08a91fd">
+<p>
+Finally, if it is too late and a window already popped up inside of your working
+environment, you can select it and use this function to push it out
+into a new frame.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span style="color: #a020f0;">defun</span> <span style="color: #0000ff;">push-buffer-to-frame</span> ()
+  <span style="color: #8b2252;">"push current window buffer to own frame and revert current window to previous frame."</span>
+  (<span style="color: #a020f0;">interactive</span>)
+  (<span style="color: #a020f0;">let</span> ((current (current-buffer))
+        (selected (selected-window)))
+    (<span style="color: #a020f0;">if</span> (display-buffer-other-frame current)
+        (quit-restore-window selected))))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org7fae88e" class="outline-2">
+<h2 id="org7fae88e">to be continued..</h2>
+<div class="outline-text-2" id="text-org7fae88e">
+<p>
+Now I'll see how these three ways are helping. So far, the most
+promising one seems to be the way of modifying the automatic display
+strategies. Of course, it is also the most expensive one. The two
+changes shown above (general change and specific change for
+info/apropos buffers) can be continued to apply special behavious for
+example also to dired, occur, deadgrep, magit windows. And the more
+you customize this, the more you also want a more fine grained
+"remote" control of the other window, i.e. by augmenting the set of
+<code>C-x 4</code> keys. In the next post I'm continuing to show what I've done
+so far..
 </p>
 
 <p>

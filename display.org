@@ -8,7 +8,7 @@
 # #+INFOJS_OPT: view:info toc:nil path:chrome/org-info.js
 #+AUTHOR: Jörg Kollmann
 #+TITLE: Configuring the Emacs display system
-#+DATE: 2021-02-08
+#+DATE: 2021-02-09
 
 * TL;DR
 
@@ -31,7 +31,13 @@ indirectly (e.g. with =C-M-v= to scroll). Often, this other window pops
 up to show info buffers activated with functions like =describe-key=
 or =describe-function=. 
 
-Now, as it seems, this selection mechanism of the other window is
+At the beginning, I had three ideas to handle this: pushing an
+annoying buffer into its own frame, explicitly selecting a window
+where the next buffer should appear and modifying the default
+selection strategy. I implemented all three to see which one works
+best.
+
+Now, as it seems, the selection mechanism of the other window is
 actually a quite deterministic operation. Its frontend is
 ~pop-to-buffer~ and documentation is in ~display-buffer~. Its
 behaviour is controlled by some variables
@@ -44,15 +50,15 @@ there is an existing window or if a new window can be split to display
 the buffer. Each one also can step back and leave it to the following
 one to take the decision.
 
-So the first idea mitigating the problem might be to sensibly change
+So the most promising idea mitigating the problem probably is to sensibly change
 the action list defined in ~display-buffer-fallback-action~,
-overriding it in ~display-buffer-base-action~. Here I just replace
+overriding it in ~display-buffer-base-action~. I did this, just replacing
 the ~display-buffer-use-some-window~ function, which obviously is the
 source of this erratic behaviour. My replacement is a combination of
 ~display-buffer-below-selected~ and ~display-buffer-at-bottom~.
 After a while of testing this, it seems to be not such a bad
 selection, at least for frames using a
-large screen space. This way, windows for occur or magit, which you want
+large screen space. This way, e.g. windows for occur or magit, which you want
 to pop up on the fly, are put below the window you are working in
 currently. Other windows further down or at the sides are left
 untouched.
@@ -62,18 +68,12 @@ When this happens the last action comes in, ~display-buffer-pop-up-frame~,
 which will open a new frame to display the buffer. In my opinion, this
 is still better as a last resort than to change my window layout.
 
-# We also
-# activate some further tweaks which are declared in the following sections.
-
 The configuration looks loke this.
-
-# , including changes to
-# ~display-buffer-alist~, whose parts are introduced below.
 
 #+BEGIN_SRC emacs-lisp
 (custom-set-variables
  '(display-buffer-base-action
-   '((display-buffer-maybe-as-scroll-buffer display-buffer-dedicated-window display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
+   '((display-buffer--maybe-same-window display-buffer-reuse-window display-buffer--maybe-pop-up-frame-or-window display-buffer-in-previous-window display-buffer-below-selected display-buffer-at-bottom display-buffer-pop-up-frame)))
  '(window-min-height 8)
  '(window-min-width 40))
 #+END_SRC
@@ -115,7 +115,7 @@ into the same window, resizing it as needed.
 (custom-set-variables
  '(display-buffer-alist
    '(("\\*Help\\*\\|\\*Apropos\\*"
-      (display-buffer-as-scroll-buffer display-buffer-dedicated-window display-buffer-reuse-help display-buffer-at-bottom)
+      (display-buffer-reuse-help display-buffer-at-bottom)
       (window-height . fit-window-to-buffer-max-half-frame)))))
 #+end_src
 
@@ -174,12 +174,87 @@ Now try this and repeatedly call ~describe-function~ for different
 functions. The first call opens a help window, each following call
 changes its size and updates it. For me, this works nicely.
 
+* Explicitly selecting a window
+
+As a second way to solve my problem, I implemented a function to
+dedicate a selected window for the next buffer to appear in. This way,
+you can create a window outside of your working environment, dedicate
+it and then from your main window call magit or occur to appear there.
+
+#+begin_src emacs-lisp
+(defvar dedicated-other-window nil)
+(defvar dedication-count)
+
+(defun dedicate-window (arg)
+  "Dedicate the currently selected window as 'other' window. When
+called with a =C-0= prefix arg, releases the previously set
+window and reverts to the default window selection behaviour. Default is a
+one-time dedication, use =C-u= for unlimited."
+  (interactive "p")
+  (setq dedicated-other-window
+        (if (eq arg 0)
+            nil
+          (selected-window)))
+  (setq dedication-count
+        (if (eq 4 arg) nil arg))
+  (if dedicated-other-window
+      (message "window dedicated")
+    (message "dedication removed")))
+#+end_src
+
+To activate this, put =display-buffer-dedicated-window= at the
+beginning of your =display-buffer-base-action= (and also into
+=display-buffer-alist= or whereever you need it).
+
+#+begin_src emacs-lisp
+(defun display-buffer-dedicated-window (buffer alist)
+  "Display pop-up-buffer in the dedicated other window, if one is
+selected. If none is selected, revert to the default behaviour."
+  (if (and dedicated-other-window
+           (window-live-p dedicated-other-window))
+      (prog1
+          (window-update-buffer buffer dedicated-other-window 'reuse alist)
+        (if (and dedication-count (> dedication-count 0))
+            (setq dedication-count (- dedication-count 1)))
+        (if (eq 0 dedication-count)
+            (setq dedicated-other-window nil)))))
+#+end_src
+
+The =prog1= makes sure the result of =window-update-buffer= (the
+window actually used or nil) is returned, indicating if this action
+selected a window or if the next one should do it.
+
+If you bind =dedicate-window= to a convenient key, this way of
+selecting which window to use as the next other window is not too clumsy.
+
+* Push buffer to own frame
+
+Finally, if it is too late and a window already popped up inside of your working
+environment, you can select it and use this function to push it out
+into a new frame.
+
+#+begin_src emacs-lisp
+(defun push-buffer-to-frame ()
+  "push current window buffer to own frame and revert current window to previous frame."
+  (interactive)
+  (let ((current (current-buffer))
+        (selected (selected-window)))
+    (if (display-buffer-other-frame current)
+        (quit-restore-window selected))))
+#+end_src
+
 * to be continued..
 
-Ths can be continued to apply special behavious for example also to dired
-windows. And the more you customize this, the more you also want a
-more fine grained "remote" control of the other window, i.e. by augmenting the
-set of =C-x 4= keys. In the next post I'm continuing to show what I've done so far..
+Now I'll see how these three ways are helping. So far, the most
+promising one seems to be the way of modifying the automatic display
+strategies. Of course, it is also the most expensive one. The two
+changes shown above (general change and specific change for
+info/apropos buffers) can be continued to apply special behavious for
+example also to dired, occur, deadgrep, magit windows. And the more
+you customize this, the more you also want a more fine grained
+"remote" control of the other window, i.e. by augmenting the set of
+=C-x 4= keys. In the next post I'm continuing to show what I've done
+so far..
 
 Feel free to comment on [[https://www.reddit.com/r/joergsworld/comments/lb36en/transforming_recursive_algorithms_into_iterative/][Reddit]].
 
