@@ -164,7 +164,7 @@ Finally, the ~window-height~ action attribute specified in the
 configuration above uses a custom function
 ~fit-window-to-buffer-max-half-frame~. It calls ~fit-window-to-buffer~
 to narrow the window to its new contents or, if widening it instead,
-use halve of the frame height as max height.
+uses half of the frame height as max height.
 
 #+BEGIN_SRC emacs-lisp
 (defun fit-window-to-buffer-max-half-frame (&optional window)

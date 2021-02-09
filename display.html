@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2021-02-09 Di. 13:43 -->
+<!-- 2021-02-09 Di. 13:52 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Configuring the Emacs display system</title>
@@ -64,9 +64,9 @@ for the JavaScript code in this tag.
 <div id="content">
 <h1 class="title">Configuring the Emacs display system</h1>
 
-<div id="outline-container-org719dd80" class="outline-2">
-<h2 id="org719dd80">TL;DR</h2>
-<div class="outline-text-2" id="text-org719dd80">
+<div id="outline-container-orga8d696c" class="outline-2">
+<h2 id="orga8d696c">TL;DR</h2>
+<div class="outline-text-2" id="text-orga8d696c">
 <p>
 A topic of long and outstanding troubles for me has been the automatic
 selection of the <i>other window</i> in emacs. As soon as an info buffer is shown,
@@ -80,9 +80,9 @@ solve the question on how to change this behaviour.
 </div>
 </div>
 
-<div id="outline-container-org391a2cf" class="outline-2">
-<h2 id="org391a2cf">Handling of other window</h2>
-<div class="outline-text-2" id="text-org391a2cf">
+<div id="outline-container-org14845bd" class="outline-2">
+<h2 id="org14845bd">Handling of other window</h2>
+<div class="outline-text-2" id="text-org14845bd">
 <p>
 First, what is this <i>other window</i>? When you are working in emacs,
 typically all your navigation or modification commands are executed in
@@ -176,9 +176,9 @@ temporarily edit with original behaviour.
 </div>
 </div>
 
-<div id="outline-container-orgc3decd1" class="outline-2">
-<h2 id="orgc3decd1">Help and Apropos buffers</h2>
-<div class="outline-text-2" id="text-orgc3decd1">
+<div id="outline-container-orgb19ab16" class="outline-2">
+<h2 id="orgb19ab16">Help and Apropos buffers</h2>
+<div class="outline-text-2" id="text-orgb19ab16">
 <p>
 Help and apropos buffers should not go into a magit or occur window
 probably visible, but always into their own. So, I've added another
@@ -254,7 +254,7 @@ Finally, the <code>window-height</code> action attribute specified in the
 configuration above uses a custom function
 <code>fit-window-to-buffer-max-half-frame</code>. It calls <code>fit-window-to-buffer</code>
 to narrow the window to its new contents or, if widening it instead,
-use halve of the frame height as max height.
+uses half of the frame height as max height.
 </p>
 
 <div class="org-src-container">
@@ -275,9 +275,9 @@ changes its size and updates it. For me, this works nicely.
 </div>
 </div>
 
-<div id="outline-container-org16e7b16" class="outline-2">
-<h2 id="org16e7b16">Explicitly selecting a window</h2>
-<div class="outline-text-2" id="text-org16e7b16">
+<div id="outline-container-org02fd4b5" class="outline-2">
+<h2 id="org02fd4b5">Explicitly selecting a window</h2>
+<div class="outline-text-2" id="text-org02fd4b5">
 <p>
 As a second way to solve my problem, I implemented a function to
 dedicate a selected window for the next buffer to appear in. This way,
@@ -341,9 +341,9 @@ selecting which window to use as the next other window is not too clumsy.
 </div>
 </div>
 
-<div id="outline-container-orgd144bca" class="outline-2">
-<h2 id="orgd144bca">Push buffer to own frame</h2>
-<div class="outline-text-2" id="text-orgd144bca">
+<div id="outline-container-org08c4632" class="outline-2">
+<h2 id="org08c4632">Push buffer to own frame</h2>
+<div class="outline-text-2" id="text-org08c4632">
 <p>
 Finally, if it is too late and a window already did pop up inside of your working
 environment, you can select it and use this function to push it out
@@ -364,9 +364,9 @@ or windows, but not on X11. I'll have another look at this..
 </div>
 </div>
 
-<div id="outline-container-org135d4b6" class="outline-2">
-<h2 id="org135d4b6">to be continued..</h2>
-<div class="outline-text-2" id="text-org135d4b6">
+<div id="outline-container-org526acc1" class="outline-2">
+<h2 id="org526acc1">to be continued..</h2>
+<div class="outline-text-2" id="text-org526acc1">
 <p>
 Now I'll see how these three ways are helping. So far, the most
 promising one seems to be the way of modifying the automatic display
